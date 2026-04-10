@@ -2,14 +2,14 @@ import { neon } from '@neondatabase/serverless';
 
 let sqlInstance: any = null;
 
-function getSql() {
+export function getSql() {
   if (sqlInstance) return sqlInstance;
   const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
   if (!dbUrl) {
-    // Trong lúc build, nếu chưa có DB thì trả về một proxy báo lỗi khi gọi
-    console.warn("⚠️ DATABASE_URL chưa được thiết lập. Truy vấn SQL sẽ bị lỗi.");
-    return () => { throw new Error('DATABASE_URL or POSTGRES_URL is not set'); };
+    console.error("❌ CRITICAL: DATABASE_URL and POSTGRES_URL are BOTH MISSING in environment.");
+    return () => { throw new Error('DATABASE_URL or POSTGRES_URL is not set. Please check Vercel Environment Variables.'); };
   }
+  console.log("✅ Initializing Neon SQL client...");
   sqlInstance = neon(dbUrl);
   return sqlInstance;
 }
