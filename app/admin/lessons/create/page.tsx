@@ -74,16 +74,14 @@ export default function CreateLesson() {
       formData.append('file', file);
       formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
 
-      // Phân loại resource_type
-      const isImage = file.type.startsWith('image/');
-      const resourceType = isImage ? 'image' : 'raw';
-
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`, {
         method: 'POST',
         body: formData,
       });
 
       const data = await res.json();
+      console.log('CLOUDINARY UPLOAD RESPONSE:', data);
+      
       if (!res.ok) throw new Error(data.error?.message || 'Lỗi upload');
 
       const updatedFiles = [...files];
@@ -93,11 +91,12 @@ export default function CreateLesson() {
         file_url: data.secure_url,
         file_type: file.type.includes('pdf') ? 'pdf' : 
                    file.type.includes('video') ? 'video' : 
-                   isImage ? 'image' : 
+                   file.type.startsWith('image/') ? 'image' : 
                    file.type.includes('excel') || file.type.includes('spreadsheetml') ? 'document' : 'link'
       };
       setFiles(updatedFiles);
     } catch (err: any) {
+      console.error('UPLOAD ERROR:', err);
       setError('Lỗi khi tải file lên: ' + err.message);
     } finally {
       setUploadingIndex(null);

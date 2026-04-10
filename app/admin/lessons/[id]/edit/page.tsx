@@ -88,19 +88,20 @@ export default function EditLesson({ params }: { params: Promise<{ id: string }>
       const formData = new FormData();
       formData.append('file', file);
       formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-
-      // Phân loại resource_type: 'image' cho ảnh, 'raw' cho các file khác như PDF, Excel
-      const isImage = file.type.startsWith('image/');
-      const resourceType = isImage ? 'image' : 'raw';
-
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
+      // Sử dụng 'auto' để Cloudinary tự quyết định, nhưng ép URL chuẩn
+      
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`, {
         method: 'POST',
         body: formData,
       });
 
       const data = await res.json();
+      console.log('CLOUDINARY UPLOAD RESPONSE:', data);
+
       if (!res.ok) throw new Error(data.error?.message || 'Lỗi upload');
 
+      // Nếu là PDF/Excel, Cloudinary có thể trả về resource_type là 'image' hoặc 'raw'
+      // Chúng ta sẽ lấy url trực tiếp từ data.secure_url
       const updatedFiles = [...files];
       updatedFiles[i] = {
         ...updatedFiles[i],
@@ -108,11 +109,12 @@ export default function EditLesson({ params }: { params: Promise<{ id: string }>
         file_url: data.secure_url,
         file_type: file.type.includes('pdf') ? 'pdf' : 
                    file.type.includes('video') ? 'video' : 
-                   isImage ? 'image' : 
+                   file.type.startsWith('image/') ? 'image' : 
                    file.type.includes('excel') || file.type.includes('spreadsheetml') ? 'document' : 'link'
       };
       setFiles(updatedFiles);
     } catch (err: any) {
+      console.error('UPLOAD ERROR:', err);
       setError('Lỗi khi tải file lên: ' + err.message);
     } finally {
       setUploadingIndex(null);
