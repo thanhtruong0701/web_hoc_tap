@@ -134,12 +134,23 @@ export async function getLessonById(lessonId: string) {
   if (result.length === 0) return null;
   
   const lesson = result[0];
-  const files = await sql`SELECT * FROM lesson_files WHERE lesson_id = ${lessonId}`;
+  const files = await sql`SELECT * FROM lesson_files WHERE lesson_id = ${lessonId} ORDER BY id ASC`;
+  const quizzes = await sql`SELECT * FROM quizzes WHERE lesson_id = ${lessonId} ORDER BY id ASC`;
+  
+  // For each quiz, load its questions and answers
+  const quizzesWithQuestions = await Promise.all(quizzes.map(async (quiz: any) => {
+    const questions = await sql`SELECT * FROM quiz_questions WHERE quiz_id = ${quiz.id} ORDER BY id ASC`;
+    const questionsWithAnswers = await Promise.all(questions.map(async (q: any) => {
+      const answers = await sql`SELECT * FROM quiz_answers WHERE question_id = ${q.id} ORDER BY id ASC`;
+      return { ...q, answers };
+    }));
+    return { ...quiz, questions: questionsWithAnswers };
+  }));
   
   return {
     ...lesson,
-    quizzes: [], // Implement quizzes fetch later if needed
-    files: files || []
+    files: files || [],
+    quizzes: quizzesWithQuestions || []
   };
 }
 
@@ -170,24 +181,54 @@ export async function createLesson(courseId: string, title: string, content: str
   return lesson;
 }
 
-export async function updateLesson(id: string, courseId: string, title: string, content: string, status?: string) {
+export async function updateLesson(id: string, courseId: string, title: string, content: string, status?: string, files?: any[], quizzes?: any[]) {
   const sql = getSql();
   let result;
   if (status) {
-    result = await sql`
-      UPDATE lessons 
-      SET course_id = ${courseId}, title = ${title}, content = ${content}, status = ${status}
-      WHERE id = ${id}
-      RETURNING *
-    `;
+    result = await sql`UPDATE lessons SET course_id = ${courseId}, title = ${title}, content = ${content}, status = ${status} WHERE id = ${id} RETURNING *`;
   } else {
-    result = await sql`
-      UPDATE lessons 
-      SET course_id = ${courseId}, title = ${title}, content = ${content}
-      WHERE id = ${id}
-      RETURNING *
-    `;
+    result = await sql`UPDATE lessons SET course_id = ${courseId}, title = ${title}, content = ${content} WHERE id = ${id} RETURNING *`;
   }
+  
+  // Update files: delete old ones then insert new ones
+  if (files !== undefined) {
+    await sql`DELETE FROM lesson_files WHERE lesson_id = ${id}`;
+    for (const f of files) {
+      if (f.file_name && f.file_url) {
+        await sql`INSERT INTO lesson_files (lesson_id, file_name, file_url, file_type) VALUES (${id}, ${f.file_name}, ${f.file_url}, ${f.file_type || 'link'})`;
+      }
+    }
+  }
+  
+  // Update quizzes: delete old ones then insert new ones
+  if (quizzes !== undefined) {
+    // Delete cascades to questions and answers if FK set up, otherwise do manually
+    const oldQuizzes = await sql`SELECT id FROM quizzes WHERE lesson_id = ${id}`;
+    for (const oq of oldQuizzes) {
+      const oldQs = await sql`SELECT id FROM quiz_questions WHERE quiz_id = ${oq.id}`;
+      for (const oqq of oldQs) {
+        await sql`DELETE FROM quiz_answers WHERE question_id = ${oqq.id}`;
+      }
+      await sql`DELETE FROM quiz_questions WHERE quiz_id = ${oq.id}`;
+    }
+    await sql`DELETE FROM quizzes WHERE lesson_id = ${id}`;
+    
+    for (const quiz of quizzes) {
+      if (!quiz.title) continue;
+      const qResult = await sql`INSERT INTO quizzes (lesson_id, title) VALUES (${id}, ${quiz.title}) RETURNING *`;
+      const quizId = qResult[0].id;
+      for (const question of (quiz.questions || [])) {
+        if (!question.question_text) continue;
+        const qqResult = await sql`INSERT INTO quiz_questions (quiz_id, question_text) VALUES (${quizId}, ${question.question_text}) RETURNING *`;
+        const questionId = qqResult[0].id;
+        for (const answer of (question.answers || [])) {
+          if (!answer.answer_text) continue;
+          await sql`INSERT INTO quiz_answers (question_id, answer_text, is_correct) VALUES (${questionId}, ${answer.answer_text}, ${answer.is_correct || false})`;
+        }
+      }
+    }
+  }
+  
   return result[0] || null;
 }
 

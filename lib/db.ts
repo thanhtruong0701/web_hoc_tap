@@ -29,7 +29,7 @@ export async function getLessonsByCourse(courseId: string, includePending?: bool
 export async function getLessonById(lessonId: string) { return (await getDb()).getLessonById(lessonId); }
 export async function getAllLessons() { return (await getDb()).getAllLessons(); }
 export async function createLesson(courseId: string, title: string, content: string, status?: string, authorEmail?: string, files?: any[]) { return (await getDb()).createLesson(courseId, title, content, status, authorEmail, files); }
-export async function updateLesson(id: string, courseId: string, title: string, content: string, status?: string) { return (await getDb()).updateLesson(id, courseId, title, content, status); }
+export async function updateLesson(id: string, courseId: string, title: string, content: string, status?: string, files?: any[], quizzes?: any[]) { return (await getDb()).updateLesson(id, courseId, title, content, status, files, quizzes); }
 export async function deleteLesson(id: string) { return (await getDb()).deleteLesson(id); }
 
 export async function getFilesByLesson(lessonId: string) { return (await getDb()).getFilesByLesson(lessonId); }

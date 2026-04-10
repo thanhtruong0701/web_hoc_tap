@@ -18,13 +18,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   try {
     const resolvedParams = await params;
     const body = await req.json();
-    const { courseId, title, content } = body;
+    const { courseId, title, content, files, quizzes } = body;
 
     if (!courseId || !title) {
       return Response.json({ success: false, error: 'Khóa học và tên bài học là bắt buộc' }, { status: 400 });
     }
 
-    const lesson = await updateLesson(resolvedParams.id, courseId, title, content || '');
+    const lesson = await updateLesson(resolvedParams.id, courseId, title, content || '', undefined, files, quizzes);
     if (!lesson) {
       return Response.json({ success: false, error: 'Lesson not found' }, { status: 404 });
     }

@@ -5,56 +5,58 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { ArrowLeft, BookOpen, Download, Play } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowLeft, BookOpen, FileText, HelpCircle, CheckCircle2, XCircle, ExternalLink } from 'lucide-react';
 
-interface File {
+interface LessonFile {
   id: string;
-  filename: string;
+  file_name: string;
   file_type: string;
   file_url: string;
-  lesson_id: string;
+}
+
+interface QuizAnswer {
+  id: string;
+  answer_text: string;
+  is_correct: boolean;
+}
+
+interface QuizQuestion {
+  id: string;
+  question_text: string;
+  answers: QuizAnswer[];
 }
 
 interface Quiz {
   id: string;
-  question: string;
-  option_a: string;
-  option_b: string;
-  option_c: string;
-  option_d: string;
-  correct_answer: string;
+  title: string;
+  questions: QuizQuestion[];
 }
 
 interface Lesson {
   id: string;
   title: string;
-  description: string;
   content: string;
+  course_name?: string;
+  files: LessonFile[];
+  quizzes: Quiz[];
 }
 
 export default function LessonPage() {
   const params = useParams();
   const lessonId = params.id as string;
   const [lesson, setLesson] = useState<Lesson | null>(null);
-  const [files, setFiles] = useState<File[]>([]);
-  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
+  // Quiz interaction state: { [questionId]: selectedAnswerId }
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
+  const [submitted, setSubmitted] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const lessonRes = await fetch(`/api/lessons/${lessonId}`);
-        if (lessonRes.ok) {
-          const lData = await lessonRes.json();
-          setLesson(lData.data);
-        }
-
-        const filesRes = await fetch(`/api/lessons?lessonId=${lessonId}`);
-        if (filesRes.ok) {
-          const data = await filesRes.json();
-          setFiles(data.data.files || []);
-          setQuizzes(data.data.quizzes || []);
+        const res = await fetch(`/api/lessons/${lessonId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setLesson(data.data);
         }
       } catch (error) {
         console.error('Error fetching lesson:', error);
@@ -62,17 +64,39 @@ export default function LessonPage() {
         setLoading(false);
       }
     }
-
     fetchData();
   }, [lessonId]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-500">Đang tải...</div>
-      </div>
-    );
-  }
+  const getFileIcon = (type: string) => {
+    const icons: Record<string, string> = { pdf: '📄', document: '📝', video: '🎬', image: '🖼️', link: '🔗' };
+    return icons[type] || '📎';
+  };
+
+  const handleSelectAnswer = (questionId: string, answerId: string) => {
+    if (submitted[questionId]) return; // Can't change after submitting
+    setSelectedAnswers(prev => ({ ...prev, [questionId]: answerId }));
+  };
+
+  const handleCheckAnswer = (questionId: string) => {
+    if (!selectedAnswers[questionId]) return;
+    setSubmitted(prev => ({ ...prev, [questionId]: true }));
+  };
+
+  if (loading) return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-gray-500">Đang tải...</div>
+    </div>
+  );
+
+  if (!lesson) return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-gray-500">Không tìm thấy bài học</div>
+    </div>
+  );
+
+  // Find video type files
+  const videoFiles = lesson.files?.filter(f => f.file_type === 'video') || [];
+  const otherFiles = lesson.files?.filter(f => f.file_type !== 'video') || [];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -89,98 +113,137 @@ export default function LessonPage() {
         </div>
       </header>
 
-      {/* Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Link href="/" className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6">
-          <ArrowLeft className="w-4 h-4" />
-          Quay lại
+          <ArrowLeft className="w-4 h-4" /> Quay lại
         </Link>
 
-        {lesson && (
-          <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">{lesson.title}</h1>
-            <p className="text-gray-600 text-lg mb-8">{lesson.description}</p>
+        <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">{lesson.title}</h1>
+        {lesson.course_name && <p className="text-gray-500 mb-6">📚 {lesson.course_name}</p>}
 
-            {files.find(f => f.file_type === 'video') && (
-              <div className="aspect-video mb-8 w-full bg-black rounded-xl overflow-hidden shadow-xl">
-                {files.find(f => f.file_type === 'video')?.file_url.includes('youtu') ? (
-                  <iframe 
-                    src={files.find(f => f.file_type === 'video')?.file_url.replace('watch?v=', 'embed/')} 
-                    className="w-full h-full"
-                    allowFullScreen
-                  />
-                ) : (
-                  <video controls className="w-full h-full">
-                    <source src={files.find(f => f.file_type === 'video')?.file_url} />
-                  </video>
-                )}
-              </div>
+        {/* VIDEO (if any) */}
+        {videoFiles.map(file => (
+          <div key={file.id} className="aspect-video mb-8 w-full bg-black rounded-xl overflow-hidden shadow-xl">
+            {file.file_url.includes('youtu') ? (
+              <iframe
+                src={file.file_url.replace('watch?v=', 'embed/').replace('youtu.be/', 'www.youtube.com/embed/')}
+                className="w-full h-full"
+                allowFullScreen
+                title={file.file_name}
+              />
+            ) : (
+              <video controls className="w-full h-full">
+                <source src={file.file_url} />
+              </video>
             )}
+          </div>
+        ))}
 
-            <Card className="p-8 mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Nội dung bài học</h2>
-              <div className="prose prose-lg max-w-none">
-                <p className="text-gray-700 whitespace-pre-line">{lesson.content}</p>
-              </div>
-            </Card>
+        {/* NỘI DUNG BÀI HỌC */}
+        <Card className="p-6 sm:p-8 mb-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">📖 Nội dung bài học</h2>
+          <div className="text-gray-700 whitespace-pre-line leading-relaxed">{lesson.content}</div>
+        </Card>
 
-            {(files.length > 0 || quizzes.length > 0) && (
-              <Tabs defaultValue="files" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  {files.length > 0 && <TabsTrigger value="files">Tài nguyên ({files.length})</TabsTrigger>}
-                  {quizzes.length > 0 && <TabsTrigger value="quiz">Quiz ({quizzes.length})</TabsTrigger>}
-                  {files.length === 0 && quizzes.length === 0 && <TabsTrigger value="empty">Không có</TabsTrigger>}
-                </TabsList>
+        {/* TÀI LIỆU ĐÍNH KÈM */}
+        {otherFiles.length > 0 && (
+          <Card className="p-6 mb-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-blue-500" /> Tài liệu đính kèm ({otherFiles.length})
+            </h2>
+            <div className="space-y-3">
+              {otherFiles.map((file) => (
+                <div key={file.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{getFileIcon(file.file_type)}</span>
+                    <div>
+                      <p className="font-semibold text-gray-900">{file.file_name}</p>
+                      <p className="text-xs text-gray-500 capitalize">{file.file_type}</p>
+                    </div>
+                  </div>
+                  <a href={file.file_url} target="_blank" rel="noopener noreferrer">
+                    <Button size="sm" className="flex items-center gap-1">
+                      <ExternalLink className="w-3 h-3" /> Mở
+                    </Button>
+                  </a>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
 
-                {files.length > 0 && (
-                  <TabsContent value="files" className="space-y-4 mt-4">
-                    <h3 className="text-xl font-bold text-gray-900">Các tài nguyên học tập</h3>
-                    {files.map((file) => (
-                      <Card key={file.id} className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Download className="w-5 h-5 text-blue-600" />
-                          <div>
-                            <p className="font-semibold text-gray-900">{file.filename}</p>
-                            <p className="text-sm text-gray-600">{file.file_type}</p>
-                          </div>
-                        </div>
-                        <a href={file.file_url} target="_blank" rel="noopener noreferrer">
-                          <Button size="sm">Tải xuống</Button>
-                        </a>
-                      </Card>
-                    ))}
-                  </TabsContent>
-                )}
+        {/* QUIZ */}
+        {lesson.quizzes && lesson.quizzes.length > 0 && (
+          <div className="space-y-6">
+            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <HelpCircle className="w-5 h-5 text-green-500" /> Kiểm tra kiến thức
+            </h2>
+            {lesson.quizzes.map((quiz) => (
+              <Card key={quiz.id} className="p-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">🏆 {quiz.title}</h3>
+                <div className="space-y-6">
+                  {quiz.questions?.map((question, qi) => {
+                    const isSubmitted = submitted[question.id];
+                    const selectedId = selectedAnswers[question.id];
+                    const correctAnswer = question.answers?.find(a => a.is_correct);
+                    const isCorrect = isSubmitted && selectedId === correctAnswer?.id;
 
-                {quizzes.length > 0 && (
-                  <TabsContent value="quiz" className="space-y-6 mt-4">
-                    <h3 className="text-xl font-bold text-gray-900">Kiểm tra kiến thức</h3>
-                    {quizzes.map((quiz, index) => (
-                      <Card key={quiz.id} className="p-6">
-                        <p className="text-lg font-semibold text-gray-900 mb-4">
-                          Câu {index + 1}: {quiz.question}
+                    return (
+                      <div key={question.id} className={`p-4 rounded-lg border-2 transition-colors ${
+                        isSubmitted
+                          ? isCorrect ? 'border-green-300 bg-green-50' : 'border-red-300 bg-red-50'
+                          : 'border-gray-200 bg-white'
+                      }`}>
+                        <p className="font-semibold text-gray-900 mb-3">
+                          Câu {qi + 1}: {question.question_text}
                         </p>
                         <div className="space-y-2">
-                          {[
-                            { key: 'A', text: quiz.option_a },
-                            { key: 'B', text: quiz.option_b },
-                            { key: 'C', text: quiz.option_c },
-                            { key: 'D', text: quiz.option_d }
-                          ].map((option) => (
-                            <label key={option.key} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                              <input type="radio" name={`quiz-${quiz.id}`} value={option.key} className="w-4 h-4" />
-                              <span className="text-gray-700">
-                                <strong>{option.key}.</strong> {option.text}
-                              </span>
-                            </label>
-                          ))}
+                          {question.answers?.map((answer, ai) => {
+                            const isSelected = selectedId === answer.id;
+                            const showCorrect = isSubmitted && answer.is_correct;
+                            const showWrong = isSubmitted && isSelected && !answer.is_correct;
+
+                            return (
+                              <label
+                                key={answer.id}
+                                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                                  showCorrect ? 'border-green-400 bg-green-100 text-green-800 font-medium'
+                                  : showWrong ? 'border-red-400 bg-red-100 text-red-800'
+                                  : isSelected ? 'border-blue-400 bg-blue-50'
+                                  : 'border-gray-200 hover:bg-gray-50'
+                                }`}
+                                onClick={() => handleSelectAnswer(question.id, answer.id)}
+                              >
+                                <input type="radio" name={`q_${question.id}`} checked={isSelected} readOnly className="accent-blue-500" />
+                                <span className="font-medium text-gray-600 text-sm">{String.fromCharCode(65 + ai)}.</span>
+                                <span>{answer.answer_text}</span>
+                                {showCorrect && <CheckCircle2 className="w-4 h-4 text-green-600 ml-auto" />}
+                                {showWrong && <XCircle className="w-4 h-4 text-red-600 ml-auto" />}
+                              </label>
+                            );
+                          })}
                         </div>
-                      </Card>
-                    ))}
-                  </TabsContent>
-                )}
-              </Tabs>
-            )}
+                        {!isSubmitted && (
+                          <Button
+                            size="sm"
+                            className="mt-3"
+                            disabled={!selectedId}
+                            onClick={() => handleCheckAnswer(question.id)}
+                          >
+                            Kiểm tra đáp án
+                          </Button>
+                        )}
+                        {isSubmitted && (
+                          <p className={`mt-3 font-semibold ${isCorrect ? 'text-green-700' : 'text-red-700'}`}>
+                            {isCorrect ? '✅ Chính xác!' : `❌ Sai rồi! Đáp án đúng là: "${correctAnswer?.answer_text}"`}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            ))}
           </div>
         )}
       </main>
