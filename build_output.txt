@@ -1,0 +1,28 @@
+
+> my-project@0.1.0 build
+> next build
+
+Ôû▓ Next.js 16.2.0 (Turbopack)
+
+  Creating an optimized production build ...
+Ô£ô Compiled successfully in 4.1s
+  Skipping validation of types
+  Finished TypeScript config validation in 10ms ...
+  Collecting page data using 11 workers ...
+Error: DATABASE_URL is not set
+    at module evaluation (E:\b_U7kz3hhrkyE\.next\server\chunks\[root-of-the-server]__0op9af~._.js:16:3869)
+    at instantiateModule (E:\b_U7kz3hhrkyE\.next\server\chunks\[turbopack]_runtime.js:853:9)
+    at getOrInstantiateModuleFromParent (E:\b_U7kz3hhrkyE\.next\server\chunks\[turbopack]_runtime.js:877:12)
+    at Context.esmImport [as i] (E:\b_U7kz3hhrkyE\.next\server\chunks\[turbopack]_runtime.js:281:20)
+    at module evaluation (E:\b_U7kz3hhrkyE\.next\server\chunks\[root-of-the-server]__0xbr9-7._.js:1:854)
+    at instantiateModule (E:\b_U7kz3hhrkyE\.next\server\chunks\[turbopack]_runtime.js:853:9)
+    at instantiateRuntimeModule (E:\b_U7kz3hhrkyE\.next\server\chunks\[turbopack]_runtime.js:882:12)
+    at getOrInstantiateRuntimeModule (E:\b_U7kz3hhrkyE\.next\server\chunks\[turbopack]_runtime.js:895:12)
+    at Object.m (E:\b_U7kz3hhrkyE\.next\server\chunks\[turbopack]_runtime.js:898:18)
+    at Object.<anonymous> (E:\b_U7kz3hhrkyE\.next\server\app\api\categories\route.js:5:3)
+
+> Build error occurred
+Error: Failed to collect page data for /api/categories
+    at ignore-listed frames {
+  type: 'Error'
+}
