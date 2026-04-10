@@ -14,33 +14,27 @@ interface LessonFile {
   file_url: string;
 }
 
-// Helper: Lấy URL có thể mở xem được (cho PDF dùng Google Docs Viewer)
+// Helper: Lấy URL proxy để mở xem file (tránh lỗi 401 từ Cloudinary)
 function getViewUrl(file: LessonFile): string {
   const url = file.file_url;
   if (!url) return '#';
   
-  // Nếu là PDF, dùng Google Docs Viewer để đảm bảo mở được trên mọi trình duyệt
-  if (file.file_type === 'pdf' || url.toLowerCase().endsWith('.pdf')) {
-    return `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
-  }
-  
-  // Nếu là document (Word, Excel), dùng Google Docs Viewer
-  if (file.file_type === 'document') {
-    return `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
+  // Nếu là URL Cloudinary, dùng proxy API của chúng ta
+  if (url.includes('res.cloudinary.com')) {
+    return `/api/files/proxy?url=${encodeURIComponent(url)}&name=${encodeURIComponent(file.file_name)}`;
   }
   
   return url;
 }
 
-// Helper: Lấy URL tải về (thêm fl_attachment cho Cloudinary)
+// Helper: Lấy URL proxy để tải file về
 function getDownloadUrl(file: LessonFile): string {
   const url = file.file_url;
   if (!url) return '#';
   
-  // Nếu là URL Cloudinary, thêm flag fl_attachment để ép tải về
+  // Dùng proxy API với flag download=1
   if (url.includes('res.cloudinary.com')) {
-    // Chèn fl_attachment vào sau /upload/
-    return url.replace('/upload/', '/upload/fl_attachment/');
+    return `/api/files/proxy?url=${encodeURIComponent(url)}&name=${encodeURIComponent(file.file_name)}&download=1`;
   }
   
   return url;
