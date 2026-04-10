@@ -5,13 +5,45 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { ArrowLeft, BookOpen, FileText, HelpCircle, CheckCircle2, XCircle, ExternalLink } from 'lucide-react';
+import { ArrowLeft, BookOpen, FileText, HelpCircle, CheckCircle2, XCircle, ExternalLink, Download } from 'lucide-react';
 
 interface LessonFile {
   id: string;
   file_name: string;
   file_type: string;
   file_url: string;
+}
+
+// Helper: Lấy URL có thể mở xem được (cho PDF dùng Google Docs Viewer)
+function getViewUrl(file: LessonFile): string {
+  const url = file.file_url;
+  if (!url) return '#';
+  
+  // Nếu là PDF, dùng Google Docs Viewer để đảm bảo mở được trên mọi trình duyệt
+  if (file.file_type === 'pdf' || url.toLowerCase().endsWith('.pdf')) {
+    return `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
+  }
+  
+  // Nếu là document (Word, Excel), dùng Google Docs Viewer
+  if (file.file_type === 'document') {
+    return `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
+  }
+  
+  return url;
+}
+
+// Helper: Lấy URL tải về (thêm fl_attachment cho Cloudinary)
+function getDownloadUrl(file: LessonFile): string {
+  const url = file.file_url;
+  if (!url) return '#';
+  
+  // Nếu là URL Cloudinary, thêm flag fl_attachment để ép tải về
+  if (url.includes('res.cloudinary.com')) {
+    // Chèn fl_attachment vào sau /upload/
+    return url.replace('/upload/', '/upload/fl_attachment/');
+  }
+  
+  return url;
 }
 
 interface QuizAnswer {
@@ -161,11 +193,18 @@ export default function LessonPage() {
                       <p className="text-xs text-gray-500 capitalize">{file.file_type}</p>
                     </div>
                   </div>
-                  <a href={file.file_url} target="_blank" rel="noopener noreferrer">
-                    <Button size="sm" className="flex items-center gap-1">
-                      <ExternalLink className="w-3 h-3" /> Mở
-                    </Button>
-                  </a>
+                  <div className="flex items-center gap-2">
+                    <a href={getViewUrl(file)} target="_blank" rel="noopener noreferrer">
+                      <Button size="sm" className="flex items-center gap-1">
+                        <ExternalLink className="w-3 h-3" /> Mở xem
+                      </Button>
+                    </a>
+                    <a href={getDownloadUrl(file)} download={file.file_name} target="_blank" rel="noopener noreferrer">
+                      <Button size="sm" variant="outline" className="flex items-center gap-1">
+                        <Download className="w-3 h-3" /> Tải về
+                      </Button>
+                    </a>
+                  </div>
                 </div>
               ))}
             </div>
