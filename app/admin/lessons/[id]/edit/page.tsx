@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { ArrowLeft, Plus, Trash2, FileText, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, FileText, HelpCircle, Upload, Loader2, Check } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -16,6 +16,9 @@ interface LessonFile { id?: string; file_name: string; file_url: string; file_ty
 interface QuizAnswer { id?: string; answer_text: string; is_correct: boolean; }
 interface QuizQuestion { id?: string; question_text: string; answers: QuizAnswer[]; }
 interface Quiz { id?: string; title: string; questions: QuizQuestion[]; }
+
+const CLOUDINARY_CLOUD_NAME = 'dndqwxqlr';
+const CLOUDINARY_UPLOAD_PRESET = 'learnhub_uploads';
 
 export default function EditLesson({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -32,6 +35,8 @@ export default function EditLesson({ params }: { params: Promise<{ id: string }>
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -70,6 +75,44 @@ export default function EditLesson({ params }: { params: Promise<{ id: string }>
     const updated = [...files];
     updated[i] = { ...updated[i], [field]: value };
     setFiles(updated);
+  };
+
+  const handleFileUpload = async (i: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingIndex(i);
+    setError('');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error?.message || 'Lỗi upload');
+
+      const updatedFiles = [...files];
+      updatedFiles[i] = {
+        ...updatedFiles[i],
+        file_name: updatedFiles[i].file_name || file.name,
+        file_url: data.secure_url,
+        file_type: file.type.includes('pdf') ? 'pdf' : 
+                   file.type.includes('video') ? 'video' : 
+                   file.type.includes('image') ? 'image' : 
+                   file.type.includes('excel') || file.type.includes('spreadsheetml') ? 'document' : 'link'
+      };
+      setFiles(updatedFiles);
+    } catch (err: any) {
+      setError('Lỗi khi tải file lên: ' + err.message);
+    } finally {
+      setUploadingIndex(null);
+    }
   };
 
   // QUIZ HANDLERS
@@ -183,7 +226,7 @@ export default function EditLesson({ params }: { params: Promise<{ id: string }>
 
             {files.length === 0 && (
               <p className="text-gray-400 text-sm text-center py-4 border-2 border-dashed rounded-lg">
-                Chưa có tài liệu nào. Nhấn "+ Thêm tài liệu" để thêm PDF, Word, video...
+                Chưa có tài liệu nào. Nhấn "+ Thêm tài liệu" để tải file lên.
               </p>
             )}
 
@@ -196,27 +239,68 @@ export default function EditLesson({ params }: { params: Promise<{ id: string }>
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div>
-                      <label className="text-xs text-gray-500 mb-1 block">Tên hiển thị</label>
-                      <Input value={file.file_name} onChange={(e) => updateFile(i, 'file_name', e.target.value)} placeholder="Ví dụ: Bài giảng PDF" disabled={loading} />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs text-gray-500 mb-1 block">Tên hiển thị</label>
+                        <Input value={file.file_name} onChange={(e) => updateFile(i, 'file_name', e.target.value)} placeholder="Ví dụ: Bài giảng PDF" disabled={loading} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500 mb-1 block">Loại tài liệu</label>
+                        <Select value={file.file_type} onValueChange={(val) => updateFile(i, 'file_type', val)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pdf">📄 PDF</SelectItem>
+                            <SelectItem value="document">📝 Tài liệu (Word, Excel...)</SelectItem>
+                            <SelectItem value="video">🎬 Video</SelectItem>
+                            <SelectItem value="image">🖼️ Hình ảnh</SelectItem>
+                            <SelectItem value="link">🔗 Link khác</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-xs text-gray-500 mb-1 block">Link URL (Google Drive, YouTube...)</label>
-                      <Input value={file.file_url} onChange={(e) => updateFile(i, 'file_url', e.target.value)} placeholder="https://..." disabled={loading} />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-500 mb-1 block">Loại tài liệu</label>
-                      <Select value={file.file_type} onValueChange={(val) => updateFile(i, 'file_type', val)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pdf">📄 PDF</SelectItem>
-                          <SelectItem value="document">📝 Word/Doc</SelectItem>
-                          <SelectItem value="video">🎬 Video (YouTube)</SelectItem>
-                          <SelectItem value="image">🖼️ Hình ảnh</SelectItem>
-                          <SelectItem value="link">🔗 Link khác</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs text-gray-500 mb-1 block">Tải file lên (PDF, Excel, Word...)</label>
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <Input 
+                              type="file" 
+                              className="hidden" 
+                              id={`file-upload-${i}`}
+                              onChange={(e) => handleFileUpload(i, e)}
+                              disabled={uploadingIndex !== null}
+                            />
+                            <label 
+                              htmlFor={`file-upload-${i}`}
+                              className={`flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                                uploadingIndex === i ? 'bg-gray-100 border-gray-300' : 'bg-white border-blue-200 hover:border-blue-400 hover:bg-blue-50'
+                              }`}
+                            >
+                              {uploadingIndex === i ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                                  <span className="text-sm font-medium text-blue-600">Đang tải lên...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="w-4 h-4 text-blue-600" />
+                                  <span className="text-sm font-medium text-blue-600">Chọn file từ máy</span>
+                                </>
+                              )}
+                            </label>
+                          </div>
+                          {file.file_url && (
+                             <div className="flex items-center justify-center w-10 h-10 border border-green-200 bg-green-50 rounded-lg text-green-600" title="Đã có file">
+                               <Check className="w-5 h-5 font-bold" />
+                             </div>
+                           )}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500 mb-1 block">Hoặc dán URL trực tiếp</label>
+                        <Input value={file.file_url} onChange={(e) => updateFile(i, 'file_url', e.target.value)} placeholder="https://..." disabled={loading} />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -299,7 +383,6 @@ export default function EditLesson({ params }: { params: Promise<{ id: string }>
                           </div>
                         ))}
                       </div>
-                      <p className="text-xs text-gray-400 mt-1">☝️ Nhấn vào ô tròn để chọn đáp án đúng (màu xanh)</p>
                     </div>
                   ))}
 
@@ -313,7 +396,7 @@ export default function EditLesson({ params }: { params: Promise<{ id: string }>
 
           {/* === NÚT LƯU === */}
           <div className="flex gap-3">
-            <Button type="submit" disabled={loading} className="flex-1 h-12 text-base">
+            <Button type="submit" disabled={loading || uploadingIndex !== null} className="flex-1 h-12 text-base">
               {loading ? 'Đang cập nhật...' : '💾 Lưu tất cả thay đổi'}
             </Button>
             <Link href="/admin/dashboard" className="flex-1">
