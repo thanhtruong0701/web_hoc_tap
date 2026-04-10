@@ -4,9 +4,14 @@ export async function GET() {
   try {
     const categories = await getCategories();
     return Response.json({ success: true, data: categories });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching categories:', error);
-    return Response.json({ success: false, error: 'Failed to fetch categories' }, { status: 500 });
+    return Response.json({ 
+      success: false, 
+      error: 'Failed to fetch categories', 
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    }, { status: 500 });
   }
 }
 
@@ -21,8 +26,16 @@ export async function POST(req: Request) {
 
     const category = await createCategory(name, description || '');
     return Response.json({ success: true, data: category });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating category:', error);
-    return Response.json({ success: false, error: 'Failed to create category' }, { status: 500 });
+    return Response.json({ 
+      success: false, 
+      error: 'Failed to create category', 
+      details: error.message,
+      env_check: {
+        has_db_url: !!(process.env.DATABASE_URL || process.env.POSTGRES_URL),
+        node_env: process.env.NODE_ENV
+      }
+    }, { status: 500 });
   }
 }
