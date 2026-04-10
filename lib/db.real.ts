@@ -23,6 +23,7 @@ export async function getCategories() {
 }
 
 export async function getCategoryById(id: string) {
+  const sql = getSql();
   const result = await sql`
     SELECT * FROM categories WHERE id = ${id}
   `;
@@ -30,6 +31,7 @@ export async function getCategoryById(id: string) {
 }
 
 export async function createCategory(name: string, description: string) {
+  const sql = getSql();
   const result = await sql`
     INSERT INTO categories (name, description, order_index)
     VALUES (${name}, ${description}, (SELECT COALESCE(MAX(order_index), 0) + 1 FROM categories))
@@ -39,6 +41,7 @@ export async function createCategory(name: string, description: string) {
 }
 
 export async function updateCategory(id: string, name: string, description: string) {
+  const sql = getSql();
   const result = await sql`
     UPDATE categories 
     SET name = ${name}, description = ${description}
@@ -49,11 +52,13 @@ export async function updateCategory(id: string, name: string, description: stri
 }
 
 export async function deleteCategory(id: string) {
+  const sql = getSql();
   await sql`DELETE FROM categories WHERE id = ${id}`;
   return { success: true };
 }
 
 export async function getCoursesByCategory(categoryId: string) {
+  const sql = getSql();
   const result = await sql`
     SELECT * FROM courses WHERE category_id = ${categoryId} ORDER BY created_at DESC
   `;
@@ -61,6 +66,7 @@ export async function getCoursesByCategory(categoryId: string) {
 }
 
 export async function getCourseById(courseId: string) {
+  const sql = getSql();
   const result = await sql`
     SELECT * FROM courses WHERE id = ${courseId}
   `;
@@ -68,6 +74,7 @@ export async function getCourseById(courseId: string) {
 }
 
 export async function getAllCourses() {
+  const sql = getSql();
   const result = await sql`
     SELECT c.*, cat.name as category_name 
     FROM courses c 
@@ -78,6 +85,7 @@ export async function getAllCourses() {
 }
 
 export async function createCourse(categoryId: string, name: string, description: string) {
+  const sql = getSql();
   const result = await sql`
     INSERT INTO courses (category_id, name, description, order_index)
     VALUES (${categoryId}, ${name}, ${description}, (SELECT COALESCE(MAX(order_index), 0) + 1 FROM courses))
@@ -87,6 +95,7 @@ export async function createCourse(categoryId: string, name: string, description
 }
 
 export async function updateCourse(id: string, categoryId: string, name: string, description: string) {
+  const sql = getSql();
   const result = await sql`
     UPDATE courses 
     SET category_id = ${categoryId}, name = ${name}, description = ${description}
@@ -97,11 +106,13 @@ export async function updateCourse(id: string, categoryId: string, name: string,
 }
 
 export async function deleteCourse(id: string) {
+  const sql = getSql();
   await sql`DELETE FROM courses WHERE id = ${id}`;
   return { success: true };
 }
 
 export async function getLessonsByCourse(courseId: string, includePending = false) {
+  const sql = getSql();
   if (includePending) {
     const result = await sql`SELECT * FROM lessons WHERE course_id = ${courseId} ORDER BY order_index ASC`;
     return result;
@@ -112,6 +123,7 @@ export async function getLessonsByCourse(courseId: string, includePending = fals
 }
 
 export async function getLessonById(lessonId: string) {
+  const sql = getSql();
   const result = await sql`
     SELECT l.*, c.name as course_name 
     FROM lessons l
@@ -132,6 +144,7 @@ export async function getLessonById(lessonId: string) {
 }
 
 export async function getAllLessons() {
+  const sql = getSql();
   const result = await sql`
     SELECT l.*, c.name as course_name 
     FROM lessons l 
@@ -142,6 +155,7 @@ export async function getAllLessons() {
 }
 
 export async function createLesson(courseId: string, title: string, content: string, status = 'approved', authorEmail?: string, files: any[] = []) {
+  const sql = getSql();
   const result = await sql`
     INSERT INTO lessons (course_id, title, content, status, author_email, order_index)
     VALUES (${courseId}, ${title}, ${content}, ${status}, ${authorEmail || null}, (SELECT COALESCE(MAX(order_index), 0) + 1 FROM lessons))
@@ -157,6 +171,7 @@ export async function createLesson(courseId: string, title: string, content: str
 }
 
 export async function updateLesson(id: string, courseId: string, title: string, content: string, status?: string) {
+  const sql = getSql();
   let result;
   if (status) {
     result = await sql`
@@ -177,11 +192,13 @@ export async function updateLesson(id: string, courseId: string, title: string, 
 }
 
 export async function deleteLesson(id: string) {
+  const sql = getSql();
   await sql`DELETE FROM lessons WHERE id = ${id}`;
   return { success: true };
 }
 
 export async function getFilesByLesson(lessonId: string) {
+  const sql = getSql();
   const result = await sql`
     SELECT * FROM lesson_files WHERE lesson_id = ${lessonId} ORDER BY created_at ASC
   `;
@@ -189,6 +206,7 @@ export async function getFilesByLesson(lessonId: string) {
 }
 
 export async function getQuizzesByLesson(lessonId: string) {
+  const sql = getSql();
   const result = await sql`
     SELECT * FROM quizzes WHERE lesson_id = ${lessonId} ORDER BY created_at ASC
   `;
@@ -196,6 +214,7 @@ export async function getQuizzesByLesson(lessonId: string) {
 }
 
 export async function recordPageView(lessonId: string, ipAddress: string) {
+  const sql = getSql();
   const result = await sql`
     SELECT * FROM lesson_views WHERE lesson_id = ${lessonId} AND ip_address = ${ipAddress}
   `;
@@ -215,6 +234,7 @@ export async function recordPageView(lessonId: string, ipAddress: string) {
 }
 
 export async function recordUserSession(sessionId: string, ipAddress: string) {
+  const sql = getSql();
   const result = await sql`
     SELECT * FROM active_sessions WHERE id = ${parseInt(sessionId)}
   `;
@@ -234,21 +254,25 @@ export async function recordUserSession(sessionId: string, ipAddress: string) {
 }
 
 export async function getTotalLessons() {
+  const sql = getSql();
   const result = await sql`SELECT COUNT(*) as total FROM lessons`;
   return Number(result[0]?.total || 0);
 }
 
 export async function getTotalCategories() {
+  const sql = getSql();
   const result = await sql`SELECT COUNT(*) as total FROM categories`;
   return Number(result[0]?.total || 0);
 }
 
 export async function getTotalViews() {
+  const sql = getSql();
   const result = await sql`SELECT COUNT(*) as total FROM lesson_views`;
   return Number(result[0]?.total || 0);
 }
 
 export async function getActiveUsersCount() {
+  const sql = getSql();
   const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
   const result = await sql`
     SELECT COUNT(DISTINCT ip_address) as total 
