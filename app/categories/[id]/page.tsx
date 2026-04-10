@@ -12,6 +12,7 @@ interface Course {
   name: string;
   description: string;
   category_id: string;
+  image_url?: string;
 }
 
 interface Category {
@@ -89,8 +90,18 @@ export default function CategoryPage() {
             {courses.map((course) => (
               <Link key={course.id} href={`/courses/${course.id}`}>
                 <Card className="h-full flex flex-col hover:shadow-xl hover:-translate-y-1 transition-all overflow-hidden border border-gray-200">
-                  <div className="h-36 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex justify-center items-center">
-                     <BookOpen className="w-14 h-14 text-white opacity-80" />
+                  <div className="h-48 relative overflow-hidden bg-gray-100">
+                    {course.image_url ? (
+                      <img 
+                        src={course.image_url} 
+                        alt={course.name} 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex justify-center items-center">
+                         <BookOpen className="w-14 h-14 text-white opacity-80" />
+                      </div>
+                    )}
                   </div>
                   <div className="p-6 flex-1 flex flex-col">
                     <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2">{course.name}</h3>
