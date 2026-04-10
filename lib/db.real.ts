@@ -40,11 +40,11 @@ export async function createCategory(name: string, description: string, imageUrl
   return result[0];
 }
 
-export async function updateCategory(id: string, name: string, description: string) {
+export async function updateCategory(id: string, name: string, description: string, imageUrl?: string | null) {
   const sql = getSql();
   const result = await sql`
     UPDATE categories 
-    SET name = ${name}, description = ${description}
+    SET name = ${name}, description = ${description}, image_url = ${imageUrl || null}
     WHERE id = ${id}
     RETURNING *
   `;
@@ -94,11 +94,11 @@ export async function createCourse(categoryId: string, name: string, description
   return result[0];
 }
 
-export async function updateCourse(id: string, categoryId: string, name: string, description: string) {
+export async function updateCourse(id: string, categoryId: string, name: string, description: string, imageUrl?: string | null) {
   const sql = getSql();
   const result = await sql`
     UPDATE courses 
-    SET category_id = ${categoryId}, name = ${name}, description = ${description}
+    SET category_id = ${categoryId}, name = ${name}, description = ${description}, image_url = ${imageUrl || null}
     WHERE id = ${id}
     RETURNING *
   `;

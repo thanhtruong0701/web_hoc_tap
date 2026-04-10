@@ -18,13 +18,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   try {
     const resolvedParams = await params;
     const body = await req.json();
-    const { name, description } = body;
+    const { name, description, image_url } = body;
 
     if (!name) {
       return Response.json({ success: false, error: 'Name is required' }, { status: 400 });
     }
 
-    const category = await updateCategory(resolvedParams.id, name, description || '');
+    const category = await updateCategory(resolvedParams.id, name, description || '', image_url || null);
     
     if (!category) {
       return Response.json({ success: false, error: 'Category not found' }, { status: 404 });

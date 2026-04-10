@@ -15,14 +15,14 @@ async function getDb() {
 export async function getCategories() { return (await getDb()).getCategories(); }
 export async function getCategoryById(id: string) { return (await getDb()).getCategoryById(id); }
 export async function createCategory(name: string, description: string, imageUrl?: string | null) { return (await getDb()).createCategory(name, description, imageUrl); }
-export async function updateCategory(id: string, name: string, description: string) { return (await getDb()).updateCategory(id, name, description); }
+export async function updateCategory(id: string, name: string, description: string, imageUrl?: string | null) { return (await getDb()).updateCategory(id, name, description, imageUrl); }
 export async function deleteCategory(id: string) { return (await getDb()).deleteCategory(id); }
 
 export async function getCoursesByCategory(categoryId: string) { return (await getDb()).getCoursesByCategory(categoryId); }
 export async function getCourseById(courseId: string) { return (await getDb()).getCourseById(courseId); }
 export async function getAllCourses() { return (await getDb()).getAllCourses(); }
 export async function createCourse(categoryId: string, name: string, description: string) { return (await getDb()).createCourse(categoryId, name, description); }
-export async function updateCourse(id: string, categoryId: string, name: string, description: string) { return (await getDb()).updateCourse(id, categoryId, name, description); }
+export async function updateCourse(id: string, categoryId: string, name: string, description: string, imageUrl?: string | null) { return (await getDb()).updateCourse(id, categoryId, name, description, imageUrl); }
 export async function deleteCourse(id: string) { return (await getDb()).deleteCourse(id); }
 
 export async function getLessonsByCourse(courseId: string, includePending?: boolean) { return (await getDb()).getLessonsByCourse(courseId, includePending); }
