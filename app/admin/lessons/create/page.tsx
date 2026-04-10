@@ -74,7 +74,11 @@ export default function CreateLesson() {
       formData.append('file', file);
       formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
 
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, {
+      // Phân loại resource_type
+      const isImage = file.type.startsWith('image/');
+      const resourceType = isImage ? 'image' : 'raw';
+
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -89,7 +93,7 @@ export default function CreateLesson() {
         file_url: data.secure_url,
         file_type: file.type.includes('pdf') ? 'pdf' : 
                    file.type.includes('video') ? 'video' : 
-                   file.type.includes('image') ? 'image' : 
+                   isImage ? 'image' : 
                    file.type.includes('excel') || file.type.includes('spreadsheetml') ? 'document' : 'link'
       };
       setFiles(updatedFiles);
