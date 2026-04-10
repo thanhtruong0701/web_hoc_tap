@@ -1,14 +1,21 @@
 import { neon } from '@neondatabase/serverless';
 
-const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+let sqlInstance: any = null;
 
-if (!dbUrl) {
-  throw new Error('DATABASE_URL or POSTGRES_URL is not set');
+function getSql() {
+  if (sqlInstance) return sqlInstance;
+  const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+  if (!dbUrl) {
+    // Trong lúc build, nếu chưa có DB thì trả về một proxy báo lỗi khi gọi
+    console.warn("⚠️ DATABASE_URL chưa được thiết lập. Truy vấn SQL sẽ bị lỗi.");
+    return () => { throw new Error('DATABASE_URL or POSTGRES_URL is not set'); };
+  }
+  sqlInstance = neon(dbUrl);
+  return sqlInstance;
 }
 
-const sql = neon(dbUrl);
-
 export async function getCategories() {
+  const sql = getSql();
   const result = await sql`
     SELECT * FROM categories ORDER BY order_index ASC
   `;
@@ -252,6 +259,7 @@ export async function getActiveUsersCount() {
 }
 
 export async function getTopLessons(limit = 10) {
+  const sql = getSql();
   const result = await sql`
     SELECT 
       l.id, 
