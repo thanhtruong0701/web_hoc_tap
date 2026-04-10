@@ -14,29 +14,35 @@ interface LessonFile {
   file_url: string;
 }
 
-// Helper: Lấy URL proxy để mở xem file (tránh lỗi 401 từ Cloudinary)
+// Helper: Lấy URL để mở xem file
 function getViewUrl(file: LessonFile): string {
   const url = file.file_url;
   if (!url) return '#';
   
-  // Nếu là URL Cloudinary, dùng proxy API của chúng ta
+  // File cũ trên Cloudinary → dùng proxy vì bị 401
   if (url.includes('res.cloudinary.com')) {
     return `/api/files/proxy?url=${encodeURIComponent(url)}&name=${encodeURIComponent(file.file_name)}`;
+  }
+  
+  // File mới trên Vercel Blob → public, dùng Google Docs Viewer cho PDF/Document
+  if (file.file_type === 'pdf' || file.file_type === 'document') {
+    return `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
   }
   
   return url;
 }
 
-// Helper: Lấy URL proxy để tải file về
+// Helper: Lấy URL để tải file về
 function getDownloadUrl(file: LessonFile): string {
   const url = file.file_url;
   if (!url) return '#';
   
-  // Dùng proxy API với flag download=1
+  // File cũ trên Cloudinary → dùng proxy với download=1
   if (url.includes('res.cloudinary.com')) {
     return `/api/files/proxy?url=${encodeURIComponent(url)}&name=${encodeURIComponent(file.file_name)}&download=1`;
   }
   
+  // File mới trên Vercel Blob → trả URL gốc, dùng download attribute trên thẻ <a>
   return url;
 }
 

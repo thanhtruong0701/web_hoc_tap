@@ -72,23 +72,23 @@ export default function CreateLesson() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
 
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`, {
+      // Upload qua Vercel Blob API (không bị lỗi 401 như Cloudinary)
+      const res = await fetch('/api/upload/blob', {
         method: 'POST',
         body: formData,
       });
 
       const data = await res.json();
-      console.log('CLOUDINARY UPLOAD RESPONSE:', data);
+      console.log('BLOB UPLOAD RESPONSE:', data);
       
-      if (!res.ok) throw new Error(data.error?.message || 'Lỗi upload');
+      if (!res.ok) throw new Error(data.error || 'Lỗi upload');
 
       const updatedFiles = [...files];
       updatedFiles[i] = {
         ...updatedFiles[i],
         file_name: updatedFiles[i].file_name || file.name,
-        file_url: data.secure_url,
+        file_url: data.url,
         file_type: file.type.includes('pdf') ? 'pdf' : 
                    file.type.includes('video') ? 'video' : 
                    file.type.startsWith('image/') ? 'image' : 
