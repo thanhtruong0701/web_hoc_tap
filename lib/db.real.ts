@@ -30,11 +30,11 @@ export async function getCategoryById(id: string) {
   return result[0] || null;
 }
 
-export async function createCategory(name: string, description: string) {
+export async function createCategory(name: string, description: string, imageUrl?: string | null) {
   const sql = getSql();
   const result = await sql`
-    INSERT INTO categories (name, description, order_index)
-    VALUES (${name}, ${description}, (SELECT COALESCE(MAX(order_index), 0) + 1 FROM categories))
+    INSERT INTO categories (name, description, image_url, order_index)
+    VALUES (${name}, ${description}, ${imageUrl || null}, (SELECT COALESCE(MAX(order_index), 0) + 1 FROM categories))
     RETURNING *
   `;
   return result[0];

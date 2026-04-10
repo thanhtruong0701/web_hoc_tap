@@ -18,13 +18,13 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { name, description } = body;
+    const { name, description, image_url } = body;
 
     if (!name) {
       return Response.json({ success: false, error: 'Name is required' }, { status: 400 });
     }
 
-    const category = await createCategory(name, description || '');
+    const category = await createCategory(name, description || '', image_url || null);
     return Response.json({ success: true, data: category });
   } catch (error: any) {
     console.error('Error creating category:', error);

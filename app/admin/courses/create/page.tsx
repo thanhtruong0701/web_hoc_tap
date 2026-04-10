@@ -20,6 +20,7 @@ export default function CreateCourse() {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
@@ -57,7 +58,7 @@ export default function CreateCourse() {
       const res = await fetch('/api/courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ categoryId, name: title, description }),
+        body: JSON.stringify({ categoryId, name: title, description, image_url: imageUrl }),
       });
 
       const data = await res.json();
@@ -147,6 +148,25 @@ export default function CreateCourse() {
                 className="w-full"
                 rows={4}
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                🖼️ Ảnh bìa khóa học (dán link URL ảnh từ internet)
+              </label>
+              <Input
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder="Ví dụ: https://images.unsplash.com/photo-..."
+                disabled={loading}
+                className="w-full"
+              />
+              {imageUrl && (
+                <div className="mt-3 rounded-lg overflow-hidden border border-gray-200 h-40 bg-gray-100">
+                  <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" onError={(e: any) => { e.target.style.display='none'; }} />
+                </div>
+              )}
+              <p className="text-xs text-gray-500 mt-1">💡 Tìm ảnh miễn phí tại <a href="https://unsplash.com" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">unsplash.com</a></p>
             </div>
 
             <div className="flex gap-3">

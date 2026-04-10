@@ -10,7 +10,9 @@ import { BookOpen, Users, Eye, Layers } from 'lucide-react';
 interface Category {
   id: string;
   title: string;
+  name: string;
   description: string;
+  image_url?: string;
 }
 
 interface Stats {
@@ -135,11 +137,24 @@ export default function Home() {
             {categories.map((category) => (
               <Link key={category.id} href={`/categories/${category.id}`}>
                 <Card className="h-full hover:shadow-lg hover:scale-105 transition-all cursor-pointer overflow-hidden border-2 border-transparent hover:border-blue-500 flex flex-col">
-                  <div className="h-32 bg-gradient-to-r from-blue-500 to-cyan-500 flex justify-center items-center">
-                    <Layers className="w-12 h-12 text-white opacity-90" />
+                  <div className="h-40 relative overflow-hidden">
+                    {category.image_url ? (
+                      <img
+                        src={category.image_url}
+                        alt={category.name || category.title}
+                        className="w-full h-full object-cover"
+                        onError={(e: any) => {
+                          e.target.parentElement.innerHTML = '<div class="w-full h-full bg-gradient-to-r from-blue-500 to-cyan-500 flex justify-center items-center"><svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'white\' stroke-width=\'2\'><polygon points=\'12 2 2 7 12 12 22 7 12 2\'></polygon><polyline points=\'2 17 12 22 22 17\'></polyline><polyline points=\'2 12 12 17 22 12\'></polyline></svg></div>';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-r from-blue-500 to-cyan-500 flex justify-center items-center">
+                        <Layers className="w-12 h-12 text-white opacity-90" />
+                      </div>
+                    )}
                   </div>
                   <div className="p-6 flex-1 flex flex-col">
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">{category.title}</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">{category.name || category.title}</h3>
                     <p className="text-gray-600 mb-6 flex-1">{category.description}</p>
                     <Button className="w-full mt-auto bg-blue-600 hover:bg-blue-700">Khám Phá Ngay</Button>
                   </div>

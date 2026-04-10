@@ -14,7 +14,7 @@ async function getDb() {
 
 export async function getCategories() { return (await getDb()).getCategories(); }
 export async function getCategoryById(id: string) { return (await getDb()).getCategoryById(id); }
-export async function createCategory(name: string, description: string) { return (await getDb()).createCategory(name, description); }
+export async function createCategory(name: string, description: string, imageUrl?: string | null) { return (await getDb()).createCategory(name, description, imageUrl); }
 export async function updateCategory(id: string, name: string, description: string) { return (await getDb()).updateCategory(id, name, description); }
 export async function deleteCategory(id: string) { return (await getDb()).deleteCategory(id); }
 
